@@ -6,7 +6,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 
 public class PossumsClient implements ClientModInitializer {
 	@Override
-public void onInitializeClient() {
+	public void onInitializeClient() {
 		// This entrypoint is suitable for setting up client-specific logic, such as rendering.
 		EntityRendererRegistry.register(Possums.POSSUM, PossumEntityRenderer::new);
 	}
