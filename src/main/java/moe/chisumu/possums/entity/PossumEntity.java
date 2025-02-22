@@ -53,12 +53,13 @@ public class PossumEntity extends TamableAnimal implements GeoEntity {
 
     @Override
     protected void registerGoals() {
-        //this.goalSelector.addGoal(1, new RandomLookAroundGoal(this));
-        //this.goalSelector.addGoal(1, new RandomStrollGoal(this, 0.4f));
         this.goalSelector.addGoal(1, new FloatGoal(this));
         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
         this.goalSelector.addGoal(3, new FollowOwnerGoal(this, (double)0.5F, 7.0F, 3.0F, false));
-        this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 10.0f));
+        this.goalSelector.addGoal(4, new RandomLookAroundGoal(this));
+        this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.4f));
+        this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 10.0f));
+        this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));
     }
 
     @Override
