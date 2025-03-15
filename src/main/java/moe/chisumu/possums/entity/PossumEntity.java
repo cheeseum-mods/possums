@@ -37,7 +37,6 @@ public class PossumEntity extends TamableAnimal implements GeoEntity {
         super(entityType, level);
     }
 
-
     protected void defineSynchedData() {
         super.defineSynchedData();
         this.entityData.define(DATA_COLLAR_COLOR, DyeColor.RED.getId());

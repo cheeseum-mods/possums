@@ -12,10 +12,11 @@ public class PossumEntityModel extends DefaultedEntityGeoModel<PossumEntity> {
 
     @Override
     public ResourceLocation getTextureResource(PossumEntity possumEntity) {
-        if (possumEntity.isTame()) {
-            return new ResourceLocation(Possums.MOD_ID, "textures/entity/possum_tamed.png");
-        }
+        // if (possumEntity.isTame()) {
+        //     return new ResourceLocation(Possums.MOD_ID, "textures/entity/possum_tamed.png");
+        // }
 
         return new ResourceLocation(Possums.MOD_ID, "textures/entity/possum.png");
     }
+
 }
