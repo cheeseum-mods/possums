@@ -3,12 +3,14 @@ package moe.chisumu.possums;
 import moe.chisumu.possums.entity.PossumEntity;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.biome.Biomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,5 +36,7 @@ public class Possums implements ModInitializer {
 		LOGGER.info("Hello Fabric world!");
 
 		FabricDefaultAttributeRegistry.register(POSSUM, PossumEntity.createMobAttributes());
+
+		BiomeModifications.addSpawn(it -> it.getBiomeKey().equals(Biomes.FOREST), POSSUM.getCategory(), POSSUM, 5, 1,4);
 	}
 }
