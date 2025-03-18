@@ -8,9 +8,12 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRe
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.levelgen.Heightmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +40,7 @@ public class Possums implements ModInitializer {
 
 		FabricDefaultAttributeRegistry.register(POSSUM, PossumEntity.createMobAttributes());
 
-		BiomeModifications.addSpawn(it -> it.getBiomeKey().equals(Biomes.FOREST), POSSUM.getCategory(), POSSUM, 5, 1,4);
+		SpawnPlacements.register(POSSUM, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, PossumEntity::checkAnimalSpawnRules);
+		BiomeModifications.addSpawn(it -> it.hasTag(BiomeTags.IS_FOREST) || it.hasTag(BiomeTags.HAS_VILLAGE_PLAINS), POSSUM.getCategory(), POSSUM, 8, 3,6);
 	}
 }
