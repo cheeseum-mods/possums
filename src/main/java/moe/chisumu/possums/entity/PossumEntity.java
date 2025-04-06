@@ -1,17 +1,22 @@
 package moe.chisumu.possums.entity;
 
-import moe.chisumu.possums.Possums;
+import moe.chisumu.possums.PossumAnimations;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.TimeUtil;
+import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.AgeableMob;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.goal.*;
+import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+import net.minecraft.world.entity.ai.goal.target.OwnerHurtByTargetGoal;
+import net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.*;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
@@ -26,12 +31,24 @@ import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.core.object.PlayState;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
-public class PossumEntity extends TamableAnimal implements GeoEntity {
-    private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
+import java.util.UUID;
 
+public class PossumEntity extends TamableAnimal implements NeutralMob, GeoEntity {
+    // Persistent Entity Data
     private static final EntityDataAccessor<Integer> DATA_COLLAR_COLOR = SynchedEntityData.defineId(PossumEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_REMAINING_ANGER_TIME = SynchedEntityData.defineId(PossumEntity.class, EntityDataSerializers.INT);
+
+    // Behavioral Constants
     private static final Ingredient TAME_INGREDIENT = Ingredient.of(new ItemLike[]{Items.SWEET_BERRIES, Items.GLOW_BERRIES});
     private static final int TAME_DIFFICULTY = 5;
+    private static final UniformInt PERSISTENT_ANGER_TIME = TimeUtil.rangeOfSeconds(60, 120);
+
+    // Animation State
+    private final AnimatableInstanceCache geoCache = GeckoLibUtil.createInstanceCache(this);
+
+    // Behavioral State (Mutable)
+    private boolean isScared;
+    private UUID persistentAngerTarget;
 
     public PossumEntity(EntityType<? extends TamableAnimal> entityType, Level level) {
         super(entityType, level);
@@ -40,6 +57,7 @@ public class PossumEntity extends TamableAnimal implements GeoEntity {
     protected void defineSynchedData() {
         super.defineSynchedData();
         this.entityData.define(DATA_COLLAR_COLOR, DyeColor.RED.getId());
+        this.entityData.define(DATA_REMAINING_ANGER_TIME, 0);
     }
 
     public void setCollarColor(DyeColor dyeColor) {
@@ -59,6 +77,9 @@ public class PossumEntity extends TamableAnimal implements GeoEntity {
         this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.4f));
         this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 10.0f));
         this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));
+        this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
+        this.targetSelector.addGoal(2, new HurtByTargetGoal(this).setAlertOthers());
+        this.targetSelector.addGoal(3, new ResetUniversalAngerTargetGoal<>(this, true));
     }
 
     @Override
@@ -135,6 +156,19 @@ public class PossumEntity extends TamableAnimal implements GeoEntity {
     public boolean isFood(ItemStack itemStack) { return TAME_INGREDIENT.test(itemStack); }
 
     @Override
+    public boolean hurt(DamageSource damageSource, float f) {
+        if (this.isInvulnerableTo(damageSource)) {
+            return false;
+        } else {
+            if (!this.level().isClientSide) {
+                this.setOrderedToSit(false);
+            }
+
+            return super.hurt(damageSource, f);
+        }
+    }
+
+    @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(DefaultAnimations.genericWalkIdleController(this) );
         controllers.add( new AnimationController<>(this, "Sitting", 0, this::poseBody) );
@@ -143,10 +177,41 @@ public class PossumEntity extends TamableAnimal implements GeoEntity {
     private PlayState poseBody(AnimationState<PossumEntity> state) {
         if (this.isInSittingPose()) {
             state.setAndContinue(DefaultAnimations.SIT);
+        } else if (this.isAngry()) {
+            state.setAndContinue(PossumAnimations.HISS);
         } else {
             state.setAndContinue(DefaultAnimations.IDLE);
         }
 
         return PlayState.CONTINUE;
+    }
+
+    @Override
+    public void aiStep() {
+        super.aiStep();
+
+        if (!this.level().isClientSide) {
+            this.updatePersistentAnger((ServerLevel)this.level(), true);
+        }
+    }
+
+    // Persistent Anger Behavior
+    @Override
+    public int getRemainingPersistentAngerTime() {
+        return this.entityData.get(DATA_REMAINING_ANGER_TIME);
+    }
+
+    @Override
+    public void setRemainingPersistentAngerTime(int i) { this.entityData.set(DATA_REMAINING_ANGER_TIME, i); }
+
+    @Override
+    public @Nullable UUID getPersistentAngerTarget() { return this.persistentAngerTarget; }
+
+    @Override
+    public void setPersistentAngerTarget(@Nullable UUID uUID) { this.persistentAngerTarget = uUID; }
+
+    @Override
+    public void startPersistentAngerTimer() {
+        this.setRemainingPersistentAngerTime(PERSISTENT_ANGER_TIME.sample(this.random));
     }
 }
